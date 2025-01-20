@@ -294,3 +294,80 @@ with tab5:
         - **Histogram and Density Plot** visualize the shape of the data (e.g., normal, skewed).
         - **Cumulative Distribution** highlights the percentage of students below each sentiment score.
     """)
+    # Sentiment Variability Analysis
+    st.subheader("Sentiment Variability Analysis")
+    sentiment_scores = df['sentiment_score']
+
+    # Measures of Dispersion
+    sentiment_range = sentiment_scores.max() - sentiment_scores.min()
+    sentiment_variance = sentiment_scores.var()
+    sentiment_std_dev = sentiment_scores.std()
+    q1 = sentiment_scores.quantile(0.25)
+    q3 = sentiment_scores.quantile(0.75)
+    iqr = q3 - q1
+
+    st.markdown(f"""
+        **Range:** {sentiment_range:.2f}  
+        **Variance:** {sentiment_variance:.2f}  
+        **Standard Deviation:** {sentiment_std_dev:.2f}  
+        **Interquartile Range (IQR):** {iqr:.2f}
+    """)
+
+    # Boxplot for IQR and Outliers
+    st.subheader("Boxplot of Sentiment Scores")
+    fig_boxplot = px.box(
+        df, 
+        y='sentiment_score', 
+        title="Boxplot of Sentiment Scores (IQR and Outliers)",
+        color_discrete_sequence=['#3498db']
+    )
+    st.plotly_chart(fig_boxplot, use_container_width=True)
+
+    # Interpretation and Insights
+    st.info("""
+        ### Insights:
+        - **Range:** Indicates the spread between the most positive and negative sentiments.
+        - **Variance & Standard Deviation:** Quantify how spread out the sentiment scores are.
+        - **IQR & Boxplot:** Highlight central tendencies and potential outliers.
+    """)
+    # ANOVA Analysis
+    st.subheader("ANOVA: Sentiment Differences Across Groups")
+    if 'department' in df.columns:
+        # Perform ANOVA
+        from scipy.stats import f_oneway
+
+        groups = [group['sentiment_score'].values for name, group in df.groupby('department')]
+        f_stat, p_value = f_oneway(*groups)
+
+        st.markdown(f"""
+            **ANOVA Results**  
+            - **F-Statistic:** {f_stat:.2f}  
+            - **P-Value:** {p_value:.4f}
+        """)
+
+        if p_value < 0.05:
+            st.success("😊 Significant differences were found in sentiment scores across departments (p < 0.05).")
+        else:
+            st.info("⚖️ No significant differences were found in sentiment scores across departments (p ≥ 0.05).")
+
+        # Boxplot for department-wise sentiment comparison
+        fig_anova = px.box(
+            df,
+            x='department',
+            y='sentiment_score',
+            title="Department-wise Sentiment Score Distribution",
+            labels={'department': 'Department', 'sentiment_score': 'Sentiment Score'},
+            color='department'
+        )
+        fig_anova.update_layout(height=500)
+        st.plotly_chart(fig_anova, use_container_width=True)
+    else:
+        st.error("The dataset does not contain a 'department' column. Please include department information to perform ANOVA.")
+
+    # Interpretation and Insights
+    st.info("""
+        ### Insights:
+        - **ANOVA:** Evaluates whether there are statistically significant differences in sentiment scores across groups (e.g., departments).
+        - **Boxplot:** Visualizes sentiment score distribution for each group, highlighting differences and variability.
+        - **P-Value:** A p-value < 0.05 indicates significant group differences, while p ≥ 0.05 suggests no significant differences.
+    """)
