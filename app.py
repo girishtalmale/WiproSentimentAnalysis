@@ -12,6 +12,7 @@ import seaborn as sns
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from mlxtend.frequent_patterns import apriori, association_rules
 
 # Set page configuration
 st.set_page_config(
@@ -421,3 +422,82 @@ with tab5:
         - **Weight Customization:** Adjust weights to prioritize specific sentiment categories based on institutional goals.
         - **Visualization:** Understand how each sentiment category contributes to the overall index.
     """)
+    st.subheader("Cluster and Pattern Recognition")
+    st.markdown("This section explores hidden patterns in sentiment data through clustering and association rule mining.")
+
+    # Load necessary libraries for clustering and pattern recognition
+    from sklearn.cluster import KMeans
+    from sklearn.preprocessing import StandardScaler
+    from scipy.cluster.hierarchy import linkage, dendrogram
+    from mlxtend.frequent_patterns import apriori, association_rules
+
+    # Prepare data for clustering
+    clustering_data = df[['sentiment_score']]  # Add additional factors if available
+    clustering_data['sentiment_score'] = df['sentiment'].map({'happy': 1, 'neutral': 0, 'unhappy': -1})
+
+    # Normalize data
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(clustering_data)
+
+    # --- K-Means Clustering ---
+    st.subheader("K-Means Clustering")
+    k = st.slider("Select the number of clusters (K):", min_value=2, max_value=10, value=3)
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    clustering_data['Cluster'] = kmeans.fit_predict(scaled_data)
+
+    # Add cluster visualization
+    st.markdown(f"### K-Means Clustering with {k} Clusters")
+    fig_kmeans = px.scatter(
+        clustering_data,
+        x=clustering_data.index,
+        y='sentiment_score',
+        color=clustering_data['Cluster'].astype(str),
+        title="Clustered Sentiment Data",
+        labels={'Cluster': 'Cluster Group'},
+        color_discrete_sequence=px.colors.qualitative.Set2
+    )
+    st.plotly_chart(fig_kmeans, use_container_width=True)
+
+    # --- Hierarchical Clustering ---
+    st.subheader("Hierarchical Clustering")
+    st.markdown("Hierarchical clustering groups similar students based on sentiment scores.")
+    linkage_matrix = linkage(scaled_data, method='ward')
+    
+    # Plot dendrogram
+    st.markdown("### Dendrogram")
+    fig_dendrogram = plt.figure(figsize=(10, 6))
+    dendrogram(linkage_matrix, truncate_mode="lastp", p=10, leaf_rotation=90., leaf_font_size=12.)
+    plt.title("Hierarchical Clustering Dendrogram")
+    plt.xlabel("Cluster Index")
+    plt.ylabel("Distance")
+    st.pyplot(fig_dendrogram)
+
+    # 
+    
+
+
+    # Insights
+    st.info("""
+        ### Insights:
+        - **K-Means Clustering:** Groups students into clusters based on sentiment scores and related factors.
+        - **Hierarchical Clustering:** Visualizes deeper relationships between students as a dendrogram.
+        - **Association Rule Mining:** Identifies patterns in co-occurring sentiments and behaviors to uncover actionable insights.
+    """)
+    # Prepare data for association rule mining
+    sentiment_data = pd.get_dummies(df[['sentiment', 'category']], columns=['sentiment', 'category'])
+    
+    # Generate frequent itemsets
+    frequent_itemsets = apriori(sentiment_data, min_support=0.1, use_colnames=True)
+    
+    # Calculate the number of frequent itemsets (needed for association rules)
+    num_itemsets = len(frequent_itemsets)
+    
+    # Generate association rules
+    rules = association_rules(frequent_itemsets, metric="lift", min_threshold=1.0, num_itemsets=num_itemsets)
+    
+    # Display association rules
+    st.markdown("### Top Association Rules")
+    if not rules.empty:
+        st.dataframe(rules[['antecedents', 'consequents', 'support', 'confidence', 'lift']].head(10))
+    else:
+        st.info("No significant association rules found.")
