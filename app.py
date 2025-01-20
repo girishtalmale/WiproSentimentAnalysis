@@ -210,8 +210,8 @@ with tab4:
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# Add model results table with styling
-st.markdown("### Detailed Model Performance Metrics")
-st.dataframe(
-    results.style.background_gradient(cmap='Blues', subset=['Accuracy', 'F1-Score', 'Precision', 'Recall'])
-)
+    # # Add model results table with styling
+    st.markdown("### Detailed Model Performance Metrics")
+    st.dataframe(
+       results.style.background_gradient(cmap='Blues', subset=['Accuracy', 'F1-Score', 'Precision', 'Recall'])
+     )
