@@ -14,6 +14,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from mlxtend.frequent_patterns import apriori, association_rules
 
+
 # Set page configuration
 st.set_page_config(
     page_title="College Survey Analysis Dashboard",
@@ -501,3 +502,57 @@ with tab5:
         st.dataframe(rules[['antecedents', 'consequents', 'support', 'confidence', 'lift']].head(10))
     else:
         st.info("No significant association rules found.")
+    # 
+    st.subheader("Radar Chart: Compare Sentiment Distributions")
+    st.markdown("This radar chart compares sentiment distributions across multiple attributes like facilities and faculty.")
+
+    # Check the column names in the dataset
+    st.write(df.columns)  # Verify the available columns in your dataset
+
+    # Replace 'faculty' with an actual column name like 'department' or another relevant attribute
+    attributes = ['category', 'department']  # Adjust based on available columns
+    sentiment_categories = ['happy', 'neutral', 'unhappy']
+    
+    # Group by each attribute and calculate the sentiment counts
+    radar_data = {}
+    for attribute in attributes:
+        if attribute in df.columns:
+            sentiment_count = df.groupby([attribute, 'sentiment']).size().unstack(fill_value=0)
+            sentiment_percentage = sentiment_count.div(sentiment_count.sum(axis=1), axis=0) * 100
+            radar_data[attribute] = sentiment_percentage.loc[:, sentiment_categories].mean(axis=0)
+        else:
+            st.warning(f"Column '{attribute}' does not exist in the dataset!")
+
+    # Prepare the radar chart data
+    radar_fig = go.Figure()
+
+    for attribute, data in radar_data.items():
+        radar_fig.add_trace(go.Scatterpolar(
+            r=data,
+            theta=sentiment_categories,
+            fill='toself',
+            name=attribute,
+        ))
+
+    # Configure layout of the radar chart
+    radar_fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 100]
+            ),
+        ),
+        showlegend=True,
+        title="Radar Chart: Sentiment Distributions across Attributes"
+    )
+
+    # Display radar chart
+    st.plotly_chart(radar_fig, use_container_width=True)
+
+    # Additional Insights
+    st.info("""
+        ### Insights:
+        - The radar chart visually compares sentiment distributions across various attributes.
+        - Higher scores in 'Happy' reflect a positive sentiment, while 'Unhappy' indicates negative sentiment.
+        - Use this analysis to identify which attributes have more positive or negative feedback.
+    """)
