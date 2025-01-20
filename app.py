@@ -371,3 +371,53 @@ with tab5:
         - **Boxplot:** Visualizes sentiment score distribution for each group, highlighting differences and variability.
         - **P-Value:** A p-value < 0.05 indicates significant group differences, while p ≥ 0.05 suggests no significant differences.
     """)
+    # Sentiment Satisfaction Index (SSI)
+    st.subheader("Sentiment Satisfaction Index (SSI)")
+    st.markdown("The Sentiment Satisfaction Index (SSI) is a weighted score based on the distribution of 'happy', 'neutral', and 'unhappy' responses.")
+
+    # Custom weights for each sentiment category
+    weights = {'happy': st.number_input("Weight for 'Happy':", min_value=0.0, max_value=1.0, value=0.6),
+               'neutral': st.number_input("Weight for 'Neutral':", min_value=0.0, max_value=1.0, value=0.3),
+               'unhappy': st.number_input("Weight for 'Unhappy':", min_value=0.0, max_value=1.0, value=0.1)}
+
+    # Ensure weights sum to 1
+    total_weight = sum(weights.values())
+    if total_weight != 1.0:
+        st.error("⚠️ The weights do not sum to 1. Please adjust the weights.")
+
+    else:
+        # Calculate SSI
+        sentiment_counts = df['sentiment'].value_counts()
+        ssi = sum(sentiment_counts.get(sentiment, 0) * weight for sentiment, weight in weights.items()) / len(df)
+
+        st.markdown(f"""
+            **Sentiment Satisfaction Index (SSI):** {ssi:.2f}
+        """)
+        if ssi > 0.7:
+            st.success("😊 High satisfaction among students.")
+        elif 0.4 <= ssi <= 0.7:
+            st.warning("⚖️ Moderate satisfaction among students.")
+        else:
+            st.error("⚠️ Low satisfaction among students.")
+
+        # Visualization of Weighted Sentiments
+        st.subheader("SSI Weighted Sentiment Distribution")
+        weighted_sentiments = {k: v * sentiment_counts.get(k, 0) for k, v in weights.items()}
+        fig_ssi = px.bar(
+            x=list(weighted_sentiments.keys()),
+            y=list(weighted_sentiments.values()),
+            title="Weighted Sentiment Contribution to SSI",
+            labels={'x': 'Sentiment', 'y': 'Weighted Contribution'},
+            color=list(weighted_sentiments.keys()),
+            color_discrete_sequence=px.colors.qualitative.Set3
+        )
+        fig_ssi.update_layout(height=400)
+        st.plotly_chart(fig_ssi, use_container_width=True)
+
+    # Interpretation and Insights
+    st.info("""
+        ### Insights:
+        - **SSI:** Aggregates sentiment data into a single, weighted index to reflect overall satisfaction.
+        - **Weight Customization:** Adjust weights to prioritize specific sentiment categories based on institutional goals.
+        - **Visualization:** Understand how each sentiment category contributes to the overall index.
+    """)
