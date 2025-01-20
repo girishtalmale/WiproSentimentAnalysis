@@ -88,8 +88,8 @@ with col3:
     """.format(happy_count/unhappy_count if unhappy_count > 0 else float('inf')), unsafe_allow_html=True)
 
 # Create tabs for different sections
-tab1, tab2, tab3, tab4 = st.tabs(["Overall Sentiment", "Department Analysis", "Facility Analysis", "Model Performance"])
-
+# tab1, tab2, tab3, tab4 = st.tabs(["Overall Sentiment", "Department Analysis", "Facility Analysis", "Model Performance"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Overall Sentiment", "Department Analysis", "Facility Analysis", "Model Performance", "Statistical Sentiment Analysis"])
 with tab1:
     st.header("Overall Sentiment Distribution")
     
@@ -215,3 +215,82 @@ with tab4:
     st.dataframe(
        results.style.background_gradient(cmap='Blues', subset=['Accuracy', 'F1-Score', 'Precision', 'Recall'])
      )
+with tab5:
+    st.header("Statistical Sentiment Analysis")
+    
+    # Compute the mean sentiment score
+    df['sentiment_score'] = df['sentiment'].map({'happy': 1, 'neutral': 0, 'unhappy': -1})
+    mean_sentiment_score = df['sentiment_score'].mean()
+
+    # Display the mean sentiment score
+    st.markdown(f"""
+        ### Mean Sentiment Score
+        <div class="metric-card">
+            <h3 style='text-align: center; color: #2c3e50;'>Mean Sentiment Score</h3>
+            <h2 style='text-align: center; color: {"#27ae60" if mean_sentiment_score > 0 else "#e74c3c"};'>{mean_sentiment_score:.2f}</h2>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Provide interpretation of the mean sentiment score
+    if mean_sentiment_score > 0:
+        st.success("😊 Positive Trend: The overall sentiment trend is positive.")
+    elif mean_sentiment_score < 0:
+        st.warning("⚠️ Negative Trend: The overall sentiment trend is negative.")
+    else:
+        st.info("⚖️ Neutral Trend: The overall sentiment trend is neutral.")
+    # Sentiment Frequency Analysis
+    st.subheader("Sentiment Frequency Analysis")
+    
+    # Compute sentiment frequency counts
+    sentiment_freq = df['sentiment'].value_counts()
+    st.subheader("Sentiment Frequency Counts")
+    st.table(sentiment_freq)
+
+    # Plot sentiment frequency distribution
+    st.subheader("Sentiment Distribution")
+    fig, ax = plt.subplots(1, 2, figsize=(14, 6))
+
+    # Histogram
+    sns.histplot(df['sentiment_score'], bins=5, kde=False, ax=ax[0], color='skyblue')
+    ax[0].set_title("Histogram of Sentiment Scores")
+    ax[0].set_xlabel("Sentiment Score")
+    ax[0].set_ylabel("Frequency")
+
+    # Density Plot
+    sns.kdeplot(df['sentiment_score'], ax=ax[1], shade=True, color='orange')
+    ax[1].set_title("Density Plot of Sentiment Scores")
+    ax[1].set_xlabel("Sentiment Score")
+    ax[1].set_ylabel("Density")
+
+    st.pyplot(fig)
+
+    # Cumulative Distribution
+    st.subheader("Cumulative Distribution")
+    cumulative_df = df['sentiment_score'].value_counts(normalize=True).sort_index().cumsum()
+    cumulative_df = cumulative_df.reset_index()
+    cumulative_df.columns = ['Sentiment Score', 'Cumulative Percentage']
+
+    # Plot cumulative distribution
+    fig_cumulative = px.line(
+        cumulative_df, 
+        x="Sentiment Score", 
+        y="Cumulative Percentage", 
+        title="Cumulative Distribution of Sentiment Scores",
+        markers=True
+    )
+    fig_cumulative.update_layout(
+        xaxis_title="Sentiment Score",
+        yaxis_title="Cumulative Percentage",
+        yaxis_tickformat=".0%",
+        height=500
+    )
+    st.plotly_chart(fig_cumulative, use_container_width=True)
+
+    # Interpretation and Insights
+    st.info("""
+        ### Insights:
+        - **Mean Sentiment Score** gives an overall trend (positive, neutral, or negative).
+        - **Frequency Analysis** shows the count and distribution of each sentiment.
+        - **Histogram and Density Plot** visualize the shape of the data (e.g., normal, skewed).
+        - **Cumulative Distribution** highlights the percentage of students below each sentiment score.
+    """)
